@@ -29,9 +29,9 @@ public class BoardServiceTests {
 		vo.setTitle("Test 123");
 		vo.setContent("Content 테스트" );
 		vo.setWriter("test");
-		
-		long bno = service.resister(vo);
-		
-		log.info("BNO: " + bno);
+//		
+//		long bno = service.resister(vo);
+//		
+//		log.info("BNO: " + bno);
 	}
 }

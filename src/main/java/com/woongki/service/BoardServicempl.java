@@ -2,13 +2,19 @@ package com.woongki.service;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.woongki.domain.BoardAttachVO;
 import com.woongki.domain.BoardVO;
+import com.woongki.domain.Criteria;
+import com.woongki.mapper.BoardAttachMapper;
 import com.woongki.mapper.BoardMapper;
 
 
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.log4j.Log4j;
 
@@ -18,32 +24,78 @@ import lombok.extern.log4j.Log4j;
 @ToString
 public class BoardServicempl implements BoardService {
 	
-	private final BoardMapper boardmapper;
+	private final BoardMapper mapper;
+	
+	@Setter(onMethod_ = @Autowired)
+	private BoardAttachMapper attachMapper;
 
+	@Transactional
 	@Override
-	public long resister(BoardVO board) {
-		boardmapper.insertSelectKey(board);
-		return board.getBno();
+	public void resister(BoardVO board) {
+		mapper.insertSelectKey(board);
+		
+		if(board.getAttachList() == null || board.getAttachList().size() <= 0 ) {
+			return;
+		}
+		
+		board.getAttachList().forEach(attach -> {
+			attach.setBno(board.getBno());
+			attachMapper.insert(attach);
+		});
+		return;
 	}
 
 	@Override
 	public BoardVO get(Long bno) {
-		return boardmapper.read(bno);
+		return mapper.read(bno);
+	}
+
+	@Transactional
+	@Override
+	public boolean modify(BoardVO board) { //기존 파일 삭제후 재업로드
+
+		log.info("modify......" + board);
+
+		attachMapper.deleteAll(board.getBno());
+
+		boolean modifyResult = mapper.update(board) == 1;
+		
+		if (modifyResult && board.getAttachList().size() > 0) {
+
+			board.getAttachList().forEach(attach -> {
+
+				attach.setBno(board.getBno());
+				attachMapper.insert(attach);
+			});
+		}
+
+		return modifyResult;
 	}
 
 	@Override
-	public int modify(BoardVO board) {
-		return boardmapper.update(board);
-	}
-
-	@Override
-	public int remove(Long bno) {
-		return boardmapper.delete(bno);
+	public boolean remove(Long bno) {
+		attachMapper.deleteAll(bno);
+		return mapper.delete(bno) == 1;
 	}
 
 	@Override
 	public List<BoardVO> getList() {
-		return boardmapper.getList();
+		return mapper.getList();
+	}
+
+	@Override
+	public List<BoardVO> getList(Criteria cri) {
+		return mapper.getListWithPaging(cri);
+	}
+
+	@Override
+	public int getTotal(Criteria cri) {
+		return mapper.getTotalCount(cri);
+	}
+
+	@Override
+	public List<BoardAttachVO> getAttachList(Long bno) {
+		return attachMapper.findByBno(bno);
 	}
 
 	
